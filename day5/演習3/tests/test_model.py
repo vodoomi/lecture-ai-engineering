@@ -16,6 +16,7 @@ from sklearn.pipeline import Pipeline
 DATA_PATH = os.path.join(os.path.dirname(__file__), "../data/Titanic.csv")
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "../models")
 MODEL_PATH = os.path.join(MODEL_DIR, "titanic_model.pkl")
+BASELINE_MODEL_PATH = os.path.join(MODEL_DIR, "baseline_titanic_model.pkl")
 
 
 @pytest.fixture
@@ -108,7 +109,6 @@ def test_model_exists():
         pytest.skip("モデルファイルが存在しないためスキップします")
     assert os.path.exists(MODEL_PATH), "モデルファイルが存在しません"
 
-
 def test_model_accuracy(train_model):
     """モデルの精度を検証"""
     model, X_test, y_test = train_model
@@ -117,8 +117,35 @@ def test_model_accuracy(train_model):
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
 
+    # baselineモデルの精度を読み込む
+    with open(BASELINE_MODEL_PATH, "rb") as f:
+        baseline_model = pickle.load(f)
+    baseline_accuracy = accuracy_score(
+        y_test, baseline_model.predict(X_test)
+    )
+
     # Titanicデータセットでは0.75以上の精度が一般的に良いとされる
     assert accuracy >= 0.75, f"モデルの精度が低すぎます: {accuracy}"
+
+def test_baseline_model_accuracy(train_model):
+    """ベースラインモデルの精度を検証"""
+    model, X_test, y_test = train_model
+
+    # 予測と精度計算
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+
+    # baselineモデルの精度を読み込む
+    with open(BASELINE_MODEL_PATH, "rb") as f:
+        baseline_model = pickle.load(f)
+    baseline_accuracy = accuracy_score(
+        y_test, baseline_model.predict(X_test)
+    )
+
+    # baselineモデルの精度よりも高いことを確認
+    assert accuracy >= baseline_accuracy, (
+        f"モデルの精度がベースラインモデルより低いです: {accuracy} < {baseline_accuracy}"
+    )
 
 
 def test_model_inference_time(train_model):
